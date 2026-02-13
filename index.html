@@ -122,7 +122,7 @@ body.holding #book{filter:brightness(.85);transition:filter .2s ease}
   <div id="pw-err">try again ❤️</div>
 </div>
 
-<div id="love-text"><span>LOVE YOU BABE</span></div>
+<div id="love-text"><span>LOVE YOU <span id="pet-word">BABE</span></span></div>
 <div id="bg-aura"></div>
 
 <div id="hearts-burst"></div>
@@ -679,8 +679,16 @@ function burstHearts(){
     setTimeout(()=>{if(h.parentNode)h.remove()},3500);
   }
 }
+const petWords=['BABE','BUB','BUNCH','CRUNCH','SCRUNCH','BUNNY','BUN','BOOBS','BABES','CRUNCHY','BUNCHY','SCRUNCHY','LOVELY','BUM','HONEYBUNCH','HONEYSCRUNCH','SCRUNCHBUNCH'];
+let petIdx=0;
+function cyclePetWord(){
+  petIdx=(petIdx+1)%petWords.length;
+  var el=document.getElementById('pet-word');
+  if(el)el.textContent=petWords[petIdx];
+}
 function goTo(i){
   if(i<0||i>=N||i===cur)return;
+  cyclePetWord();
   const prev=cur;
   cur=i;
   // Exit old slide
