@@ -23,7 +23,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;color:#d4af3
 #pw-err.show{opacity:1}
 
 canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
-canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45}
+
+/* Animated gradient aura background (replaces WebGL shader) */
+#bg-aura{position:fixed;inset:0;z-index:0;overflow:hidden;background:#0a0a0a}
+.aura{position:absolute;border-radius:50%;will-change:transform,opacity}
+.a1{width:70vmax;height:70vmax;top:-25%;left:-15%;background:radial-gradient(circle,rgba(160,25,50,.3) 0%,rgba(160,25,50,.08) 40%,transparent 70%);animation:drift1 18s ease-in-out infinite alternate}
+.a2{width:55vmax;height:55vmax;bottom:-20%;right:-10%;background:radial-gradient(circle,rgba(255,50,110,.25) 0%,rgba(255,50,110,.06) 40%,transparent 70%);animation:drift2 22s ease-in-out infinite alternate}
+.a3{width:65vmax;height:65vmax;top:20%;right:-20%;background:radial-gradient(circle,rgba(200,40,80,.2) 0%,rgba(200,40,80,.05) 40%,transparent 70%);animation:drift3 25s ease-in-out infinite alternate}
+.a4{width:50vmax;height:50vmax;bottom:10%;left:15%;background:radial-gradient(circle,rgba(212,160,55,.15) 0%,rgba(212,160,55,.04) 40%,transparent 70%);animation:drift4 20s ease-in-out infinite alternate}
+.a5{width:45vmax;height:45vmax;top:40%;left:50%;background:radial-gradient(circle,rgba(180,30,90,.18) 0%,rgba(180,30,90,.04) 40%,transparent 70%);animation:drift5 16s ease-in-out infinite alternate}
+@keyframes drift1{0%{transform:translate(0,0) scale(1)}50%{transform:translate(15vw,10vh) scale(1.15)}100%{transform:translate(5vw,20vh) scale(.95)}}
+@keyframes drift2{0%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-12vw,-8vh) scale(.9)}100%{transform:translate(-5vw,-15vh) scale(1.05)}}
+@keyframes drift3{0%{transform:translate(0,0) scale(.95)}50%{transform:translate(-10vw,12vh) scale(1.1)}100%{transform:translate(-18vw,5vh) scale(1)}}
+@keyframes drift4{0%{transform:translate(0,0) scale(1)}50%{transform:translate(8vw,-10vh) scale(1.2)}100%{transform:translate(15vw,-5vh) scale(.9)}}
+@keyframes drift5{0%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-8vw,8vh) scale(.85)}100%{transform:translate(10vw,-8vh) scale(1.15)}}
 
 #book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
 #book.vis{opacity:1}
@@ -43,9 +56,9 @@ canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45}
 .slide.active.t-rise{animation:riseIn .8s cubic-bezier(.23,1,.32,1) forwards}
 @keyframes riseIn{0%{transform:translateY(40px) scale(.98)}100%{transform:translateY(0) scale(1)}}
 
-/* Transition: Romantic blur reveal */
-.slide.active.t-reveal{animation:revealIn .9s ease-out forwards}
-@keyframes revealIn{0%{clip-path:circle(5% at 50% 50%)}100%{clip-path:circle(100% at 50% 50%)}}
+/* Transition: Soft reveal (replaced clip-path which caused mobile flickering) */
+.slide.active.t-reveal{animation:revealIn .8s ease-out forwards}
+@keyframes revealIn{0%{opacity:.3;transform:scale(.9) rotate(-1deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
 
 /* Transition: Warm dissolve */
 .slide.active.t-warm{animation:warmIn .8s ease forwards}
@@ -103,7 +116,13 @@ body.holding #book{filter:brightness(.85);transition:filter .2s ease}
   <div id="pw-err">try again ❤️</div>
 </div>
 
-<canvas id="fluid"></canvas>
+<div id="bg-aura">
+  <div class="aura a1"></div>
+  <div class="aura a2"></div>
+  <div class="aura a3"></div>
+  <div class="aura a4"></div>
+  <div class="aura a5"></div>
+</div>
 <canvas id="ptcl"></canvas>
 
 <div id="hearts-burst"></div>
@@ -605,7 +624,7 @@ let unlocked=false;
 function unlock(){
   if(unlocked)return;
   unlocked=true;
-  pwS.classList.add('gone');initPtcl();// initFluid(); // disabled for stabilityloadAround(0);
+  pwS.classList.add('gone');initPtcl();loadAround(0);
   setTimeout(()=>pwS.style.display='none',800);
   document.getElementById('start-overlay').classList.add('show');
 }
@@ -669,14 +688,15 @@ function goTo(i){
   slides[prev].classList.remove('active');
   // Enter new slide with random transition
   clearTransClasses(slides[cur]);
-  const t=null; // TRANSITIONS[tIdx%TRANSITIONS.length]; // disabled for stability
+  const t=TRANSITIONS[tIdx%TRANSITIONS.length];
   tIdx++;
   slides[cur].classList.add('active');
+  if(t)slides[cur].classList.add(t);
   dots[prev].classList.remove('active');
   dots[cur].classList.add('active');
   loadAround(cur);
-  // Heart burst every 3-4 slides
-  // if(tIdx%3===0)burstHearts(); // disabled for stability
+  // Heart burst every 3 slides
+  if(tIdx%3===0)burstHearts();
   // Video control
   const oldV=slides[prev].querySelector('video');
   if(oldV)oldV.pause();
@@ -833,21 +853,63 @@ document.addEventListener('visibilitychange',()=>{
   else if(playing){startAutoAdvance();requestAnimationFrame(updateProgress)}
 });
 
-// Particles
+// Valentine particle system — gold sparkles, pink/rose dots, floating hearts
 function initPtcl(){
   const c=document.getElementById('ptcl'),ctx=c.getContext('2d');let W,H,pts=[];
   function sz(){W=c.width=innerWidth;H=c.height=innerHeight}sz();
   addEventListener('resize',sz);
-  // Fewer particles on mobile
-  const numPtcl=window.innerWidth<768?8:15;
-  for(let i=0;i<numPtcl;i++)pts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()*.25+.04});
-  let lastPtclDraw=0;
+  const colors=[
+    {r:212,g:175,b:55},  // gold
+    {r:255,g:105,b:135}, // rose pink
+    {r:255,g:60,b:100},  // hot pink
+    {r:200,g:50,b:80},   // deep rose
+    {r:255,g:150,b:170}, // soft pink
+    {r:180,g:130,b:55},  // warm gold
+  ];
+  const numPtcl=window.innerWidth<768?16:28;
+  for(let i=0;i<numPtcl;i++){
+    const col=colors[Math.floor(Math.random()*colors.length)];
+    const isHeart=Math.random()<0.18;
+    pts.push({
+      x:Math.random()*W,y:Math.random()*H,
+      r:isHeart?(Math.random()*4+3):(Math.random()*2+.5),
+      vx:(Math.random()-.5)*.2,
+      vy:-(Math.random()*.12+.03),
+      a:Math.random()*.25+.05,
+      col:col,heart:isHeart,
+      phase:Math.random()*Math.PI*2
+    });
+  }
+  function drawHeart(x,y,size,alpha,col){
+    ctx.save();ctx.translate(x,y);
+    const s=size*0.6;
+    ctx.beginPath();
+    ctx.moveTo(0,s*0.35);
+    ctx.bezierCurveTo(0,s*0.1,-s*0.5,-s*0.25,-s*0.5,s*0.05);
+    ctx.bezierCurveTo(-s*0.5,s*0.45,0,s*0.6,0,s*0.85);
+    ctx.bezierCurveTo(0,s*0.6,s*0.5,s*0.45,s*0.5,s*0.05);
+    ctx.bezierCurveTo(s*0.5,-s*0.25,0,s*0.1,0,s*0.35);
+    ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
+    ctx.fill();ctx.restore();
+  }
+  let lastDraw=0;
   function draw(now){
     if(document.hidden){requestAnimationFrame(draw);return}
-    // Throttle to ~20fps for particles (they're subtle, don't need 60fps)
-    if(now-lastPtclDraw<50){requestAnimationFrame(draw);return}
-    lastPtclDraw=now;
-    ctx.clearRect(0,0,W,H);for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,175,55,${p.a})`;ctx.fill()}requestAnimationFrame(draw)}requestAnimationFrame(draw)
+    if(now-lastDraw<50){requestAnimationFrame(draw);return}
+    lastDraw=now;
+    ctx.clearRect(0,0,W,H);
+    for(const p of pts){
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<-10)p.x=W+10;if(p.x>W+10)p.x=-10;
+      if(p.y<-10)p.y=H+10;if(p.y>H+10)p.y=-10;
+      p.phase+=0.015;
+      const alpha=Math.max(0.02,Math.min(0.35,p.a+Math.sin(p.phase)*0.08));
+      if(p.heart){drawHeart(p.x,p.y,p.r,alpha,p.col)}
+      else{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(${p.col.r},${p.col.g},${p.col.b},${alpha})`;ctx.fill()}
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
 }
 
 // Music
@@ -880,107 +942,6 @@ mbtn.addEventListener('click',()=>{
   if(playing) pauseMusic();
   else startMusic();
 });
-// FLUID DYNAMICS
-function initFluid(){
-  const c=document.getElementById('fluid'),gl=c.getContext('webgl');
-  if(!gl){return}
-  // Render fluid at half resolution on mobile to save GPU
-  const fluidScale=window.innerWidth<768?0.4:0.6;
-  function sz(){c.width=Math.floor(innerWidth*fluidScale);c.height=Math.floor(innerHeight*fluidScale);gl.viewport(0,0,c.width,c.height)}
-  sz();addEventListener('resize',sz);
-
-  const vs=`attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}`;
-  const fs=`
-precision mediump float;
-uniform float t;
-uniform vec2 r;
-
-vec3 palette(float x){
-  vec3 hotpink=vec3(1.0,.08,.58);
-  vec3 red=vec3(1.0,.12,.12);
-  vec3 orange=vec3(1.0,.4,.0);
-  vec3 magenta=vec3(.9,.0,.45);
-  vec3 deep=vec3(.5,.0,.15);
-  float s=x*4.0;
-  if(s<1.0)return mix(deep,red,s);
-  if(s<2.0)return mix(red,hotpink,s-1.0);
-  if(s<3.0)return mix(hotpink,magenta,s-2.0);
-  return mix(magenta,orange,s-3.0);
-}
-
-float noise(vec2 p){
-  return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);
-}
-
-float smooth_noise(vec2 p){
-  vec2 i=floor(p),f=fract(p);
-  f=f*f*(3.0-2.0*f);
-  float a=noise(i),b=noise(i+vec2(1,0)),c=noise(i+vec2(0,1)),d=noise(i+vec2(1,1));
-  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
-}
-
-float fbm(vec2 p){
-  float v=0.0,a=0.5;
-  for(int i=0;i<3;i++){v+=a*smooth_noise(p);p*=2.1;a*=0.5;}
-  return v;
-}
-
-void main(){
-  vec2 uv=gl_FragCoord.xy/r;
-  float s=t*0.15;
-  
-  vec2 q=vec2(fbm(uv*2.5+vec2(s,s*0.7)),fbm(uv*2.5+vec2(s*1.3,s*0.4)));
-  vec2 w=vec2(fbm(uv*3.0+q*1.5+vec2(s*0.5,s*0.8)),fbm(uv*3.0+q*1.5+vec2(s*0.7,s*0.3)));
-  
-  float f=fbm(uv*2.0+w*2.0);
-  f=f*f*2.2;
-  
-  vec3 col=palette(f);
-  
-  // Vignette
-  float vig=1.0-length((uv-0.5)*1.4);
-  vig=smoothstep(0.0,0.7,vig);
-  col*=vig;
-  
-  gl_FragColor=vec4(col,1.0);
-}`;
-
-  function mkS(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.error('Shader compile error:',gl.getShaderInfoLog(s));gl.deleteShader(s);return null}return s}
-  const vsS=mkS(gl.VERTEX_SHADER,vs);
-  const fsS=mkS(gl.FRAGMENT_SHADER,fs);
-  if(!vsS||!fsS){console.error('Shader compilation failed, disabling fluid');return}
-  const prg=gl.createProgram();
-  gl.attachShader(prg,vsS);
-  gl.attachShader(prg,fsS);
-  gl.linkProgram(prg);
-  if(!gl.getProgramParameter(prg,gl.LINK_STATUS)){console.error('Shader link error:',gl.getProgramInfoLog(prg));return}
-  gl.useProgram(prg);
-
-  const buf=gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-  const p=gl.getAttribLocation(prg,'p');
-  gl.enableVertexAttribArray(p);
-  gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
-
-  const uT=gl.getUniformLocation(prg,'t');
-  const uR=gl.getUniformLocation(prg,'r');
-  let start=Date.now();
-  let fluidRAF=null;
-  let lastFluidDraw=0;
-
-  function draw(now){
-    if(document.hidden){fluidRAF=requestAnimationFrame(draw);return}
-    // Throttle to ~24fps (42ms) to reduce GPU load on mobile
-    if(now-lastFluidDraw<42){fluidRAF=requestAnimationFrame(draw);return}
-    lastFluidDraw=now;
-    gl.uniform1f(uT,(Date.now()-start)/1000);
-    gl.uniform2f(uR,c.width,c.height);
-    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-    fluidRAF=requestAnimationFrame(draw);
-  }
-  fluidRAF=requestAnimationFrame(draw);
-}
 </script>
 </body>
 </html>
