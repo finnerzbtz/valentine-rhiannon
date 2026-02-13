@@ -95,6 +95,11 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 .page-num{position:absolute;bottom:28px;font-size:11px;letter-spacing:1px;color:rgba(212,175,55,.2)}
+#love-text{position:fixed;bottom:12px;left:0;right:0;z-index:2;text-align:center;pointer-events:none;opacity:0;transition:opacity 1s}
+#love-text.vis{opacity:1}
+#love-text span{font-family:'Playfair Display',serif;font-size:clamp(28px,7vw,48px);font-weight:700;letter-spacing:6px;text-transform:uppercase;color:transparent;background:linear-gradient(135deg,#ff2060,#ff4080,#ff60a0,#ff2060);background-size:200% 200%;-webkit-background-clip:text;background-clip:text;animation:loveGlow 3s ease-in-out infinite,loveShift 6s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(255,50,100,.4)) drop-shadow(0 0 30px rgba(255,50,100,.15))}
+@keyframes loveGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(255,50,100,.3)) drop-shadow(0 0 25px rgba(255,50,100,.1))}50%{filter:drop-shadow(0 0 16px rgba(255,50,100,.6)) drop-shadow(0 0 40px rgba(255,50,100,.25))}}
+@keyframes loveShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 #start-overlay{position:fixed;inset:0;z-index:90;background:rgba(10,10,10,.95);display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #start-overlay.show{display:flex}
 #start-overlay .play-icon{width:80px;height:80px;border:2px solid rgba(212,175,55,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:24px;transition:transform .2s,border-color .2s}
@@ -117,6 +122,7 @@ body.holding #book{filter:brightness(.85);transition:filter .2s ease}
   <div id="pw-err">try again ❤️</div>
 </div>
 
+<div id="love-text"><span>LOVE YOU BABE</span></div>
 <div id="bg-aura"></div>
 
 <div id="hearts-burst"></div>
@@ -627,7 +633,7 @@ document.getElementById('start-overlay').addEventListener('click',function(e){
   try{
     this.classList.remove('show');
     this.style.display='none';
-    book.classList.add('vis');
+    book.classList.add('vis');document.getElementById('love-text').classList.add('vis');
     mbtn.classList.add('vis');
     loadAround(0);loadAround(3);loadAround(6);
     var playPromise=bgm.play();
