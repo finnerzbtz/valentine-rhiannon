@@ -28,32 +28,28 @@ canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45}
 #book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
 #book.vis{opacity:1}
 
-.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;pointer-events:none;will-change:opacity,transform}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;pointer-events:none;will-change:opacity,transform;transition:opacity .3s ease}
 .slide.active{opacity:1;transform:none;pointer-events:auto}
 
 /* Transition: Soft glow fade */
-.slide.t-glow{animation:glowIn .8s cubic-bezier(.23,1,.32,1) forwards}
-@keyframes glowIn{0%{opacity:0;filter:brightness(1.8) blur(8px);transform:scale(1.05)}40%{filter:brightness(1.3) blur(3px)}100%{opacity:1;filter:brightness(1) blur(0);transform:scale(1)}}
+.slide.active.t-glow{animation:glowIn .8s cubic-bezier(.23,1,.32,1) both}
+@keyframes glowIn{0%{filter:brightness(1.8) blur(8px);transform:scale(1.05)}40%{filter:brightness(1.3) blur(3px)}100%{filter:brightness(1) blur(0);transform:scale(1)}}
 
 /* Transition: Heartbeat zoom */
-.slide.t-heart{animation:heartIn .7s cubic-bezier(.175,.885,.32,1.275) forwards}
-@keyframes heartIn{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.06)}70%{transform:scale(.97)}100%{opacity:1;transform:scale(1)}}
+.slide.active.t-heart{animation:heartIn .7s cubic-bezier(.175,.885,.32,1.275) both}
+@keyframes heartIn{0%{transform:scale(.5)}50%{transform:scale(1.06)}70%{transform:scale(.97)}100%{transform:scale(1)}}
 
 /* Transition: Soft drift up */
-.slide.t-rise{animation:riseIn .8s cubic-bezier(.23,1,.32,1) forwards}
-@keyframes riseIn{0%{opacity:0;transform:translateY(40px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.slide.active.t-rise{animation:riseIn .8s cubic-bezier(.23,1,.32,1) both}
+@keyframes riseIn{0%{transform:translateY(40px) scale(.98)}100%{transform:translateY(0) scale(1)}}
 
 /* Transition: Romantic blur reveal */
-.slide.t-reveal{animation:revealIn .9s ease-out forwards}
-@keyframes revealIn{0%{opacity:0;clip-path:circle(0% at 50% 50%)}60%{opacity:1}100%{opacity:1;clip-path:circle(75% at 50% 50%)}}
+.slide.active.t-reveal{animation:revealIn .9s ease-out both}
+@keyframes revealIn{0%{clip-path:circle(0% at 50% 50%)}100%{clip-path:circle(80% at 50% 50%)}}
 
 /* Transition: Warm dissolve */
-.slide.t-warm{animation:warmIn .8s ease forwards}
-@keyframes warmIn{0%{opacity:0;filter:saturate(2) brightness(1.5);transform:scale(1.1) rotate(.5deg)}100%{opacity:1;filter:saturate(1) brightness(1);transform:scale(1) rotate(0)}}
-
-/* Exit transitions */
-.slide.t-exit{animation:fadeOut .4s ease forwards}
-@keyframes fadeOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.94)}}
+.slide.active.t-warm{animation:warmIn .8s ease both}
+@keyframes warmIn{0%{filter:saturate(2) brightness(1.5);transform:scale(1.1) rotate(.5deg)}100%{filter:saturate(1) brightness(1);transform:scale(1) rotate(0)}}
 
 /* Hearts burst overlay */
 #hearts-burst{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden}
@@ -656,8 +652,6 @@ function goTo(i){
   // Exit old slide
   clearTransClasses(slides[prev]);
   slides[prev].classList.remove('active');
-  slides[prev].classList.add('t-exit');
-  setTimeout(()=>{slides[prev].classList.remove('t-exit')},500);
   // Enter new slide with random transition
   clearTransClasses(slides[cur]);
   const t=TRANSITIONS[tIdx%TRANSITIONS.length];
