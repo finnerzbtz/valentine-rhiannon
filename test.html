@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>For You — Debug Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;color:#d4af37;font-family:'Cormorant Garamond',serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+
+/* === PASSWORD SCREEN (identical to original) === */
+#pw-screen{position:fixed;inset:0;z-index:100;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s}
+#pw-screen.gone{opacity:0;visibility:hidden;pointer-events:none}
+#pw-screen .lock{font-size:48px;margin-bottom:30px;opacity:.6}
+#pw-screen label{font-family:'Playfair Display',serif;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#d4af37;opacity:.6;margin-bottom:14px}
+#pw-input{background:0 0;border:none;border-bottom:1px solid rgba(212,175,55,.25);color:#d4af37;font-family:'Cormorant Garamond',serif;font-size:18px;padding:12px 20px;width:280px;text-align:center;outline:0;transition:border-color .3s}
+#pw-input:focus{border-bottom-color:rgba(212,175,55,.7)}
+#pw-input::placeholder{color:rgba(212,175,55,.15)}
+#pw-err{color:#ff6b6b;font-size:13px;margin-top:12px;opacity:0;transition:opacity .3s}
+#pw-err.show{opacity:1}
+
+/* === BOOK / SLIDES — simple CSS fade only === */
+#book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
+#book.vis{opacity:1}
+
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;pointer-events:none;transition:opacity .8s ease}
+.slide.active{opacity:1;pointer-events:auto}
+
+/* === Photo frame === */
+.photo-frame{position:relative;max-width:88vw;max-height:72vh;border-radius:4px;overflow:hidden;box-shadow:0 0 30px rgba(212,175,55,.06)}
+.photo-frame img{display:block;max-width:88vw;max-height:72vh;object-fit:contain;border-radius:4px}
+
+/* === Cover === */
+#cover h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:#d4af37;text-align:center;line-height:1.5;margin-bottom:6px}
+#cover .sub{font-size:20px;font-style:italic;color:rgba(212,175,55,.45);margin-bottom:50px}
+
+/* === Final === */
+#final .heart{font-size:40px;margin-bottom:24px;opacity:.5}
+#final .msg{font-size:19px;font-style:italic;color:#d4af37;line-height:1.8;max-width:300px;opacity:.85;text-align:center;margin-top:20px}
+#final .sign{font-size:15px;color:rgba(212,175,55,.4);margin-top:28px}
+
+/* === Start overlay === */
+#start-overlay{position:fixed;inset:0;z-index:90;background:rgba(10,10,10,.95);display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+#start-overlay.show{display:flex}
+#start-overlay .play-icon{width:80px;height:80px;border:2px solid rgba(212,175,55,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:24px}
+#start-overlay .play-icon::after{content:'';width:0;height:0;border-style:solid;border-width:16px 0 16px 28px;border-color:transparent transparent transparent rgba(212,175,55,.6);margin-left:6px}
+#start-overlay .start-text{font-family:'Playfair Display',serif;font-size:14px;letter-spacing:3px;text-transform:uppercase;color:rgba(212,175,55,.5)}
+
+/* === Music button === */
+#music-btn{position:fixed;top:14px;right:14px;z-index:50;width:34px;height:34px;border-radius:50%;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.15);color:#d4af37;font-size:15px;display:none;align-items:center;justify-content:center;cursor:pointer}
+#music-btn.vis{display:flex}
+
+/* === Progress bar === */
+#progress-bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#d4af37,#f5d77a);z-index:60;width:0;transition:width .3s linear;pointer-events:none}
+
+/* === Hold-to-pause indicator === */
+body.holding::after{content:'❚❚';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:rgba(212,175,55,.35);z-index:55;pointer-events:none}
+
+/* === Debug banner === */
+#debug-banner{position:fixed;bottom:10px;left:10px;z-index:999;font-size:11px;color:rgba(212,175,55,.4);pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN (same as original) -->
+<div id="pw-screen">
+  <div class="lock">🔒</div>
+  <label>enter password</label>
+  <input type="text" id="pw-input" placeholder="..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <div id="pw-err">try again ❤️</div>
+</div>
+
+<!-- NO canvas#fluid — WebGL shader removed -->
+<!-- NO canvas#ptcl — particle canvas removed -->
+
+<!-- TAP TO BEGIN -->
+<div id="start-overlay">
+  <div class="play-icon"></div>
+  <div class="start-text">tap to begin</div>
+</div>
+
+<!-- BOOK: only 5 slides (cover + 3 photos + final) -->
+<div id="book">
+  <div class="slide active" id="cover">
+    <h1>Happy<br>Valentine's Day</h1>
+    <div class="sub">Rhiannon</div>
+  </div>
+
+  <div class="slide" data-idx="1">
+    <div class="photo-frame">
+      <img src="photos/01_web.jpg" alt="">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="2">
+    <div class="photo-frame">
+      <img src="photos/02_web.jpg" alt="">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="3">
+    <div class="photo-frame">
+      <img src="photos/03_web.jpg" alt="">
+    </div>
+  </div>
+
+  <div class="slide" id="final">
+    <div class="heart">❤️</div>
+    <div class="msg">you and me
+always and forever</div>
+    <div class="sign">forever yours x</div>
+  </div>
+</div>
+
+<div id="progress-bar"></div>
+<div id="music-btn">♫</div>
+<audio id="bgm" preload="auto" src="music.mp3"></audio>
+
+<div id="debug-banner">DEBUG TEST — 5 slides, no WebGL, no particles, CSS fade only</div>
+
+<script>
+/* ============================================================
+   MINIMAL TEST VERSION — isolating crash cause
+   - No WebGL fluid shader
+   - No canvas particles
+   - No fancy animation classes (glow/heart/rise/reveal/warm)
+   - No hearts burst
+   - No loadAll() eager loading of 66 slides
+   - Simple CSS opacity fade transitions
+   - Simple setInterval auto-advance
+   - Basic hold-to-pause
+   ============================================================ */
+
+const PW = 'babeiloveyousomuchwhatdaheck';
+const pwS = document.getElementById('pw-screen');
+const pwI = document.getElementById('pw-input');
+const pwE = document.getElementById('pw-err');
+const book = document.getElementById('book');
+const mbtn = document.getElementById('music-btn');
+const bgm = document.getElementById('bgm');
+const progressBar = document.getElementById('progress-bar');
+
+// --- Password ---
+pwI.addEventListener('input', function() {
+  pwE.classList.remove('show');
+  if (pwI.value.toLowerCase().trim() === PW) unlock();
+});
+pwI.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (pwI.value.toLowerCase().trim() === PW) unlock();
+    else { pwE.classList.add('show'); }
+  }
+});
+
+let unlocked = false;
+function unlock() {
+  if (unlocked) return;
+  unlocked = true;
+  pwS.classList.add('gone');
+  setTimeout(function() { pwS.style.display = 'none'; }, 800);
+  document.getElementById('start-overlay').classList.add('show');
+}
+
+// --- Slides ---
+const slides = document.querySelectorAll('.slide');
+const N = slides.length; // 5
+let cur = 0;
+let playing = false;
+let holding = false;
+let autoTimer = null;
+const SLIDE_MS = 3000; // 3 seconds per slide — simple fixed interval
+
+function goTo(i) {
+  if (i < 0 || i >= N || i === cur) return;
+  slides[cur].classList.remove('active');
+  cur = i;
+  slides[cur].classList.add('active');
+  console.log('[test] slide', cur, '/', N - 1);
+}
+
+// --- Start ---
+document.getElementById('start-overlay').addEventListener('click', function() {
+  this.classList.remove('show');
+  this.style.display = 'none';
+  book.classList.add('vis');
+  mbtn.classList.add('vis');
+
+  bgm.play().then(function() {
+    playing = true;
+    mbtn.textContent = '⏸';
+    startAutoAdvance();
+    requestAnimationFrame(updateProgress);
+  }).catch(function(err) {
+    console.warn('[test] Audio play failed:', err);
+    // Still start slideshow even if audio fails
+    playing = true;
+    startAutoAdvance();
+  });
+});
+
+// --- Auto-advance with simple setInterval ---
+function startAutoAdvance() {
+  stopAutoAdvance();
+  autoTimer = setInterval(function() {
+    if (holding) return; // skip this tick if holding
+    if (cur < N - 1) {
+      goTo(cur + 1);
+    } else {
+      // Reached end
+      stopAutoAdvance();
+    }
+  }, SLIDE_MS);
+}
+
+function stopAutoAdvance() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+}
+
+// --- Progress bar from audio ---
+function updateProgress() {
+  if (bgm.duration && bgm.duration > 0) {
+    progressBar.style.width = (bgm.currentTime / bgm.duration * 100) + '%';
+  }
+  if (playing) requestAnimationFrame(updateProgress);
+}
+
+// --- Audio ended ---
+bgm.addEventListener('ended', function() {
+  goTo(N - 1);
+  stopAutoAdvance();
+  playing = false;
+  mbtn.textContent = '♫';
+  progressBar.style.width = '100%';
+});
+
+// --- Music toggle ---
+mbtn.addEventListener('click', function() {
+  if (playing) {
+    bgm.pause();
+    playing = false;
+    mbtn.textContent = '♫';
+    stopAutoAdvance();
+  } else {
+    bgm.play().then(function() {
+      playing = true;
+      mbtn.textContent = '⏸';
+      startAutoAdvance();
+      requestAnimationFrame(updateProgress);
+    }).catch(function() {});
+  }
+});
+
+// --- Hold to pause (touch) ---
+document.addEventListener('touchstart', function() {
+  if (!unlocked) return;
+  holding = true;
+  document.body.classList.add('holding');
+}, { passive: true });
+
+document.addEventListener('touchend', function() {
+  holding = false;
+  document.body.classList.remove('holding');
+}, { passive: true });
+
+document.addEventListener('touchcancel', function() {
+  holding = false;
+  document.body.classList.remove('holding');
+}, { passive: true });
+
+// --- Tap edges to navigate ---
+document.addEventListener('click', function(e) {
+  if (!unlocked || pwS.style.display !== 'none') return;
+  if (e.target.id === 'music-btn' || e.target.closest('#music-btn')) return;
+  var x = e.clientX / window.innerWidth;
+  if (x > 0.7) { goTo(cur + 1); if (playing) startAutoAdvance(); }
+  else if (x < 0.3) { goTo(cur - 1); if (playing) startAutoAdvance(); }
+});
+
+// --- Keyboard ---
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight') { goTo(cur + 1); if (playing) startAutoAdvance(); }
+  if (e.key === 'ArrowLeft') { goTo(cur - 1); if (playing) startAutoAdvance(); }
+});
+
+console.log('[test] Minimal test loaded — ' + N + ' slides, no WebGL, no particles');
+</script>
+</body>
+</html>

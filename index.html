@@ -617,10 +617,16 @@ document.getElementById('start-overlay').addEventListener('click',function(e){
     book.classList.add('vis');
     mbtn.classList.add('vis');
     loadAll();
-    bgm.play().then(()=>{
-      playing=true;mbtn.classList.add('playing');mbtn.textContent='⏸';
-      startAutoAdvance();requestAnimationFrame(updateProgress);
-    }).catch(()=>{});
+    var playPromise=bgm.play();
+    if(playPromise!==undefined){
+      playPromise.then(()=>{
+        playing=true;mbtn.classList.add('playing');mbtn.textContent='⏸';
+        startAutoAdvance();requestAnimationFrame(updateProgress);
+      }).catch(function(e){console.warn('Audio play failed:',e);startAutoAdvance();requestAnimationFrame(updateProgress)});
+    } else {
+      // Fallback for old browsers
+      playing=true;startAutoAdvance();requestAnimationFrame(updateProgress);
+    }
   }catch(err){console.error('Start error:',err)}
 });
 
@@ -638,8 +644,11 @@ let tIdx=0;
 function clearTransClasses(el){TRANSITIONS.forEach(t=>el.classList.remove(t));el.style.clipPath='';el.style.filter='';el.style.transform=''}
 function burstHearts(){
   const c=document.getElementById('hearts-burst');
+  // Cap burst hearts to prevent DOM bloat from rapid swiping
+  if(c.childElementCount>30)return;
   const hearts=['❤️','💕','💗','💖','🩷','🧡'];
-  for(let i=0;i<8;i++){
+  const count=window.innerWidth<768?4:8;
+  for(let i=0;i<count;i++){
     const h=document.createElement('span');
     h.className='burst-heart';
     h.textContent=hearts[Math.floor(Math.random()*hearts.length)];
@@ -648,7 +657,7 @@ function burstHearts(){
     h.style.fontSize=(14+Math.random()*18)+'px';
     h.style.animation='floatHeart '+(1.5+Math.random()*1.5)+'s ease-out '+(Math.random()*.3)+'s forwards';
     c.appendChild(h);
-    setTimeout(()=>h.remove(),3500);
+    setTimeout(()=>{if(h.parentNode)h.remove()},3500);
   }
 }
 function goTo(i){
@@ -677,20 +686,37 @@ function goTo(i){
 
 // Lazy loading
 function loadAround(idx){
+  // Load current slide + 1 ahead for images, current only for video
   for(let d=-1;d<=2;d++){
     const j=idx+d;if(j<0||j>=N)continue;
     const s=slides[j];
     s.querySelectorAll('img.lazy').forEach(img=>{if(!img.src&&img.dataset.src)img.src=img.dataset.src;img.classList.remove('lazy')});
-    s.querySelectorAll('video.lazy-vid').forEach(vid=>{if(!vid.src&&vid.dataset.src)vid.src=vid.dataset.src;vid.classList.remove('lazy-vid')});
+    // Only load video for current and next slide
+    if(d>=-1&&d<=1){
+      s.querySelectorAll('video.lazy-vid').forEach(vid=>{if(!vid.src&&vid.dataset.src){vid.src=vid.dataset.src;vid.load()}vid.classList.remove('lazy-vid')});
+    }
   }
+  // Unload videos that are far away (>2 slides) to free memory
+  slides.forEach((s,i)=>{
+    if(Math.abs(i-idx)>2){
+      s.querySelectorAll('video').forEach(vid=>{
+        if(vid.getAttribute('src')){
+          vid.pause();
+          vid.removeAttribute('src');
+          // Remove all source children too
+          while(vid.firstChild)vid.removeChild(vid.firstChild);
+          vid.load();/* releases buffer */
+          vid.classList.add('lazy-vid');
+        }
+      });
+    }
+  });
 }
 function loadAll(){
+  // Only load images eagerly, NOT videos — videos are loaded on-demand via loadAround()
   slides.forEach(s=>{
     s.querySelectorAll('img.lazy').forEach(img=>{if(!img.src&&img.dataset.src)img.src=img.dataset.src;img.classList.remove('lazy')});
-    s.querySelectorAll('video.lazy-vid').forEach(vid=>{
-      if(!vid.src&&vid.dataset.src){vid.src=vid.dataset.src;vid.load()}
-      vid.classList.remove('lazy-vid');
-    });
+    // Videos: do NOT bulk-load. loadAround() handles them when near the current slide.
   });
 }
 
@@ -731,12 +757,14 @@ function stopAutoAdvance() {
 }
 
 // Update progress bar from audio
+let progressRAF=null;
 function updateProgress() {
-  if (bgm.duration && bgm.duration > 0) {
+  if (!playing){progressRAF=null;return}
+  if (!document.hidden && bgm.duration && bgm.duration > 0) {
     const pct = (bgm.currentTime / bgm.duration) * 100;
     progressBar.style.width = pct + '%';
   }
-  if (playing) requestAnimationFrame(updateProgress);
+  progressRAF=requestAnimationFrame(updateProgress);
 }
 
 // Music loop: restart slideshow from beginning
@@ -799,13 +827,27 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'){goTo(cur-1);if(playing)startAutoAdvance()}
 });
 
+// Pause auto-advance when tab is hidden to prevent timer buildup
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){stopAutoAdvance()}
+  else if(playing){startAutoAdvance();requestAnimationFrame(updateProgress)}
+});
+
 // Particles
 function initPtcl(){
   const c=document.getElementById('ptcl'),ctx=c.getContext('2d');let W,H,pts=[];
   function sz(){W=c.width=innerWidth;H=c.height=innerHeight}sz();
   addEventListener('resize',sz);
-  for(let i=0;i<45;i++)pts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()*.25+.04});
-  function draw(){ctx.clearRect(0,0,W,H);for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,175,55,${p.a})`;ctx.fill()}requestAnimationFrame(draw)}draw()
+  // Fewer particles on mobile
+  const numPtcl=window.innerWidth<768?20:45;
+  for(let i=0;i<numPtcl;i++)pts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()*.25+.04});
+  let lastPtclDraw=0;
+  function draw(now){
+    if(document.hidden){requestAnimationFrame(draw);return}
+    // Throttle to ~20fps for particles (they're subtle, don't need 60fps)
+    if(now-lastPtclDraw<50){requestAnimationFrame(draw);return}
+    lastPtclDraw=now;
+    ctx.clearRect(0,0,W,H);for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,175,55,${p.a})`;ctx.fill()}requestAnimationFrame(draw)}requestAnimationFrame(draw)
 }
 
 // Music
@@ -813,12 +855,15 @@ function initPtcl(){
 let playing=false;
 
 function startMusic() {
-  bgm.play().then(()=>{
-    playing=true;
-    mbtn.classList.add('playing');mbtn.textContent='⏸';
-    startAutoAdvance();
-    requestAnimationFrame(updateProgress);
-  }).catch(()=>{});
+  var p=bgm.play();
+  if(p!==undefined){
+    p.then(()=>{
+      playing=true;
+      mbtn.classList.add('playing');mbtn.textContent='⏸';
+      startAutoAdvance();
+      requestAnimationFrame(updateProgress);
+    }).catch(function(e){console.warn('Music play failed:',e)});
+  }
 }
 
 function pauseMusic() {
@@ -839,7 +884,9 @@ mbtn.addEventListener('click',()=>{
 function initFluid(){
   const c=document.getElementById('fluid'),gl=c.getContext('webgl');
   if(!gl){return}
-  function sz(){c.width=innerWidth;c.height=innerHeight;gl.viewport(0,0,c.width,c.height)}
+  // Render fluid at half resolution on mobile to save GPU
+  const fluidScale=window.innerWidth<768?0.4:0.6;
+  function sz(){c.width=Math.floor(innerWidth*fluidScale);c.height=Math.floor(innerHeight*fluidScale);gl.viewport(0,0,c.width,c.height)}
   sz();addEventListener('resize',sz);
 
   const vs=`attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}`;
@@ -874,7 +921,7 @@ float smooth_noise(vec2 p){
 
 float fbm(vec2 p){
   float v=0.0,a=0.5;
-  for(int i=0;i<5;i++){v+=a*smooth_noise(p);p*=2.1;a*=0.5;}
+  for(int i=0;i<3;i++){v+=a*smooth_noise(p);p*=2.1;a*=0.5;}
   return v;
 }
 
@@ -898,11 +945,16 @@ void main(){
   gl_FragColor=vec4(col,1.0);
 }`;
 
-  function mkS(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s}
+  function mkS(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.error('Shader compile error:',gl.getShaderInfoLog(s));gl.deleteShader(s);return null}return s}
+  const vsS=mkS(gl.VERTEX_SHADER,vs);
+  const fsS=mkS(gl.FRAGMENT_SHADER,fs);
+  if(!vsS||!fsS){console.error('Shader compilation failed, disabling fluid');return}
   const prg=gl.createProgram();
-  gl.attachShader(prg,mkS(gl.VERTEX_SHADER,vs));
-  gl.attachShader(prg,mkS(gl.FRAGMENT_SHADER,fs));
-  gl.linkProgram(prg);gl.useProgram(prg);
+  gl.attachShader(prg,vsS);
+  gl.attachShader(prg,fsS);
+  gl.linkProgram(prg);
+  if(!gl.getProgramParameter(prg,gl.LINK_STATUS)){console.error('Shader link error:',gl.getProgramInfoLog(prg));return}
+  gl.useProgram(prg);
 
   const buf=gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER,buf);
@@ -914,14 +966,20 @@ void main(){
   const uT=gl.getUniformLocation(prg,'t');
   const uR=gl.getUniformLocation(prg,'r');
   let start=Date.now();
+  let fluidRAF=null;
+  let lastFluidDraw=0;
 
-  function draw(){
+  function draw(now){
+    if(document.hidden){fluidRAF=requestAnimationFrame(draw);return}
+    // Throttle to ~24fps (42ms) to reduce GPU load on mobile
+    if(now-lastFluidDraw<42){fluidRAF=requestAnimationFrame(draw);return}
+    lastFluidDraw=now;
     gl.uniform1f(uT,(Date.now()-start)/1000);
     gl.uniform2f(uR,c.width,c.height);
     gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-    requestAnimationFrame(draw);
+    fluidRAF=requestAnimationFrame(draw);
   }
-  draw();
+  fluidRAF=requestAnimationFrame(draw);
 }
 </script>
 </body>
