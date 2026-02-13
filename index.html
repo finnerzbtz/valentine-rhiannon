@@ -56,6 +56,12 @@ canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.18}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 .page-num{position:absolute;bottom:28px;font-size:11px;letter-spacing:1px;color:rgba(212,175,55,.2)}
+#start-overlay{position:fixed;inset:0;z-index:90;background:rgba(10,10,10,.95);display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#start-overlay.show{display:flex}
+#start-overlay .play-icon{width:80px;height:80px;border:2px solid rgba(212,175,55,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:24px;transition:transform .2s,border-color .2s}
+#start-overlay .play-icon::after{content:'';width:0;height:0;border-style:solid;border-width:16px 0 16px 28px;border-color:transparent transparent transparent rgba(212,175,55,.6);margin-left:6px}
+#start-overlay:active .play-icon{transform:scale(.9);border-color:rgba(212,175,55,.8)}
+#start-overlay .start-text{font-family:'Playfair Display',serif;font-size:14px;letter-spacing:3px;text-transform:uppercase;color:rgba(212,175,55,.5)}
 
 #progress-bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#d4af37,#f5d77a);z-index:60;width:0;transition:width .3s linear;pointer-events:none}
 body.holding::after{content:'❚❚';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:rgba(212,175,55,.35);z-index:55;pointer-events:none;animation:holdFade .3s ease}
@@ -75,6 +81,10 @@ body.holding #book{filter:brightness(.85);transition:filter .2s ease}
 <canvas id="fluid"></canvas>
 <canvas id="ptcl"></canvas>
 
+<div id="start-overlay">
+  <div class="play-icon"></div>
+  <div class="start-text">tap to begin</div>
+</div>
 <div id="book">
   <div class="slide active" id="cover">
     <h1>Happy<br>Valentine's Day</h1>
@@ -565,14 +575,20 @@ pwI.addEventListener('input',()=>{pwE.classList.remove('show');if(pwI.value.toLo
 pwI.addEventListener('keydown',e=>{if(e.key==='Enter'){if(pwI.value.toLowerCase().trim()===PW)unlock();else{pwE.classList.add('show');pwI.style.borderBottomColor='#ff6b6b';setTimeout(()=>pwI.style.borderBottomColor='',800)}}});
 
 function unlock(){
-  pwS.classList.add('gone');book.classList.add('vis');initPtcl();initFluid();loadAround(0);
+  pwS.classList.add('gone');initPtcl();initFluid();loadAround(0);
   setTimeout(()=>pwS.style.display='none',800);
-  // Start music directly from user gesture (required by iOS Safari)
-  bgm.play().then(()=>{
-    playing=true;mbtn.classList.add('vis','playing');mbtn.textContent='⏸';
-    startAutoAdvance();requestAnimationFrame(updateProgress);
-  }).catch(()=>{mbtn.classList.add('vis')});
+  // Show tap-to-start overlay (iOS needs a real tap for audio)
+  document.getElementById('start-overlay').classList.add('show');
 }
+document.getElementById('start-overlay').addEventListener('click',function(){
+  this.classList.remove('show');
+  book.classList.add('vis');
+  mbtn.classList.add('vis');
+  bgm.play().then(()=>{
+    playing=true;mbtn.classList.add('playing');mbtn.textContent='⏸';
+    startAutoAdvance();requestAnimationFrame(updateProgress);
+  }).catch(()=>{});
+});
 
 const slides=document.querySelectorAll('.slide');
 const N=slides.length;
