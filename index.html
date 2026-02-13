@@ -18,20 +18,20 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;color:#d4af37;font-family:'Cormorant Garamond',serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 
-#pw-screen{position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at 50% 30%,rgba(120,15,40,.6),transparent 65%),radial-gradient(ellipse at 20% 80%,rgba(180,30,70,.3),transparent 50%),radial-gradient(ellipse at 80% 70%,rgba(200,50,90,.2),transparent 50%),#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s;overflow:hidden}
+#pw-screen{position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at 50% 40%,rgba(150,20,50,.4),transparent 70%),radial-gradient(ellipse at 30% 70%,rgba(120,15,45,.25),transparent 55%),radial-gradient(ellipse at 75% 30%,rgba(180,30,60,.15),transparent 50%),#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s;overflow:hidden}
 #pw-screen.gone{opacity:0;visibility:hidden;pointer-events:none}
-#pw-screen .lock{font-size:64px;margin-bottom:10px;animation:lockPulse 2s ease-in-out infinite}
-@keyframes lockPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-#pw-screen .pw-title{font-family:'Fredoka',sans-serif;font-size:clamp(28px,8vw,44px);font-weight:700;color:transparent;background:linear-gradient(135deg,#ff2060,#ff4080,#ff60a0);-webkit-background-clip:text;background-clip:text;margin-bottom:8px;letter-spacing:2px}
-#pw-screen .pw-sub{font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;color:rgba(255,150,180,.5);margin-bottom:30px}
-#pw-screen label{font-family:'Playfair Display',serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,180,200,.5);margin-bottom:14px}
-#pw-input{background:rgba(255,255,255,.05);border:none;border-bottom:2px solid rgba(255,80,120,.3);border-radius:8px 8px 0 0;color:#ffa0b8;font-family:'Cormorant Garamond',serif;font-size:18px;padding:14px 20px;width:280px;text-align:center;outline:0;transition:border-color .3s,background .3s}
-#pw-input:focus{border-bottom-color:rgba(255,80,120,.7);background:rgba(255,255,255,.08)}
-#pw-input::placeholder{color:rgba(255,150,180,.2)}
-#pw-err{color:#ff6b6b;font-size:13px;margin-top:12px;opacity:0;transition:opacity .3s}
+#pw-screen .lock{font-size:80px;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(255,80,120,.3)) drop-shadow(0 0 40px rgba(255,50,100,.15));animation:lockPulse 3s ease-in-out infinite}
+@keyframes lockPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(255,80,120,.3))}50%{transform:scale(1.06);filter:drop-shadow(0 0 30px rgba(255,80,120,.5))}}
+#pw-screen .pw-title{font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(26px,7vw,36px);font-weight:400;color:#ff6b8a;margin-bottom:6px;letter-spacing:1px}
+#pw-screen .pw-name{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,5vw,24px);font-style:italic;color:rgba(255,170,185,.4);margin-bottom:40px;letter-spacing:2px}
+#pw-screen label{font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:2px;color:rgba(255,150,170,.4);margin-bottom:12px}
+#pw-input{background:rgba(255,255,255,.06);border:1px solid rgba(255,100,140,.15);border-radius:24px;color:#ffb0c4;font-family:'Cormorant Garamond',serif;font-size:18px;padding:14px 24px;width:280px;text-align:center;outline:0;transition:border-color .3s,background .3s,box-shadow .3s}
+#pw-input:focus{border-color:rgba(255,100,140,.35);background:rgba(255,255,255,.08);box-shadow:0 0 20px rgba(255,80,120,.1)}
+#pw-input::placeholder{color:rgba(255,170,190,.2);font-style:italic}
+#pw-err{color:#ff6b8a;font-size:14px;margin-top:14px;opacity:0;transition:opacity .3s;font-family:'Cormorant Garamond',serif;font-style:italic}
 #pw-err.show{opacity:1}
 #pw-screen .pw-hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-#pw-screen .pw-heart{position:absolute;opacity:.15;font-size:24px;animation:pwFloat linear infinite}
+#pw-screen .pw-heart{position:absolute;opacity:.2;animation:pwFloat linear infinite}
 @keyframes pwFloat{0%{transform:translateY(100vh) rotate(0deg)}100%{transform:translateY(-100px) rotate(360deg)}}
 
 canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -122,13 +122,13 @@ body.holding #book{filter:brightness(.85);transition:filter .2s ease}
 <body>
 
 <div id="pw-screen">
-  <div class="pw-hearts"><span class="pw-heart" style="left:13%;animation-duration:18s;animation-delay:-1s;font-size:24px">❤️</span><span class="pw-heart" style="left:31%;animation-duration:8s;animation-delay:-9s;font-size:31px">💕</span><span class="pw-heart" style="left:77%;animation-duration:17s;animation-delay:-1s;font-size:32px">💗</span><span class="pw-heart" style="left:27%;animation-duration:13s;animation-delay:-1s;font-size:24px">💖</span><span class="pw-heart" style="left:36%;animation-duration:10s;animation-delay:-6s;font-size:16px">🩷</span><span class="pw-heart" style="left:9%;animation-duration:12s;animation-delay:-5s;font-size:21px">🤍</span><span class="pw-heart" style="left:50%;animation-duration:14s;animation-delay:-5s;font-size:25px">💘</span><span class="pw-heart" style="left:78%;animation-duration:11s;animation-delay:-2s;font-size:20px">❤️</span><span class="pw-heart" style="left:93%;animation-duration:10s;animation-delay:-3s;font-size:32px">💕</span><span class="pw-heart" style="left:5%;animation-duration:15s;animation-delay:-1s;font-size:18px">💗</span><span class="pw-heart" style="left:37%;animation-duration:11s;animation-delay:-6s;font-size:28px">💖</span><span class="pw-heart" style="left:69%;animation-duration:15s;animation-delay:-4s;font-size:32px">🩷</span></div>
+  <div class="pw-hearts"><span class="pw-heart" style="left:8%;animation-duration:13s;animation-delay:-9s;font-size:31px">❤️</span><span class="pw-heart" style="left:20%;animation-duration:12s;animation-delay:-1s;font-size:24px">💕</span><span class="pw-heart" style="left:32%;animation-duration:17s;animation-delay:-2s;font-size:34px">💗</span><span class="pw-heart" style="left:40%;animation-duration:13s;animation-delay:-5s;font-size:30px">🤍</span><span class="pw-heart" style="left:53%;animation-duration:22s;animation-delay:-4s;font-size:25px">💘</span><span class="pw-heart" style="left:66%;animation-duration:14s;animation-delay:-4s;font-size:30px">🩷</span><span class="pw-heart" style="left:76%;animation-duration:17s;animation-delay:-10s;font-size:24px">💖</span><span class="pw-heart" style="left:88%;animation-duration:22s;animation-delay:-7s;font-size:34px">❤️</span></div>
   <div class="lock">💝</div>
-  <div class="pw-title">Happy Valentine's</div>
-  <div class="pw-sub">this one's for you ✨</div>
-  <label>enter password</label>
+  <div class="pw-title">Happy Valentine's Day</div>
+  <div class="pw-name">Rhiannon</div>
+  <label>type the magic words</label>
   <input type="text" id="pw-input" placeholder="..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-  <div id="pw-err">try again ❤️</div>
+  <div id="pw-err">not quite... try again 💗</div>
 </div>
 
 <div id="love-text"><span>LOVE YOU <span id="pet-word">BABE</span></span></div>
