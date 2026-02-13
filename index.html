@@ -23,6 +23,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;color:#d4af3
 #pw-err.show{opacity:1}
 
 canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
+canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.18}
 
 #book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
 #book.vis{opacity:1}
@@ -66,6 +67,7 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
   <div id="pw-err">try again ❤️</div>
 </div>
 
+<canvas id="fluid"></canvas>
 <canvas id="ptcl"></canvas>
 
 <div id="book">
@@ -556,7 +558,7 @@ const pwS=document.getElementById('pw-screen'),pwI=document.getElementById('pw-i
 pwI.addEventListener('input',()=>{pwE.classList.remove('show');if(pwI.value.toLowerCase().trim()===PW)unlock()});
 pwI.addEventListener('keydown',e=>{if(e.key==='Enter'){if(pwI.value.toLowerCase().trim()===PW)unlock();else{pwE.classList.add('show');pwI.style.borderBottomColor='#ff6b6b';setTimeout(()=>pwI.style.borderBottomColor='',800)}}});
 
-function unlock(){pwS.classList.add('gone');book.classList.add('vis');initPtcl();loadAround(0);setTimeout(()=>pwS.style.display='none',800);tryMusic()}
+function unlock(){pwS.classList.add('gone');book.classList.add('vis');initPtcl();initFluid();loadAround(0);setTimeout(()=>pwS.style.display='none',800);tryMusic()}
 
 const slides=document.querySelectorAll('.slide');
 const N=slides.length;
@@ -619,6 +621,92 @@ mbtn.addEventListener('click',()=>{
   else{bgm.play().then(()=>{mbtn.classList.add('playing');mbtn.textContent='⏸'}).catch(()=>{})}
   playing=!playing
 });
+// FLUID DYNAMICS
+function initFluid(){
+  const c=document.getElementById('fluid'),gl=c.getContext('webgl');
+  if(!gl){return}
+  function sz(){c.width=innerWidth;c.height=innerHeight;gl.viewport(0,0,c.width,c.height)}
+  sz();addEventListener('resize',sz);
+
+  const vs=`attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}`;
+  const fs=`
+precision mediump float;
+uniform float t;
+uniform vec2 r;
+
+vec3 palette(float x){
+  vec3 pink=vec3(.92,.25,.45);
+  vec3 red=vec3(.85,.12,.15);
+  vec3 orange=vec3(.95,.45,.12);
+  vec3 deep=vec3(.35,.02,.08);
+  float s=x*3.0;
+  if(s<1.0)return mix(deep,red,s);
+  if(s<2.0)return mix(red,pink,s-1.0);
+  return mix(pink,orange,s-2.0);
+}
+
+float noise(vec2 p){
+  return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);
+}
+
+float smooth_noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);
+  f=f*f*(3.0-2.0*f);
+  float a=noise(i),b=noise(i+vec2(1,0)),c=noise(i+vec2(0,1)),d=noise(i+vec2(1,1));
+  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+}
+
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  for(int i=0;i<5;i++){v+=a*smooth_noise(p);p*=2.1;a*=0.5;}
+  return v;
+}
+
+void main(){
+  vec2 uv=gl_FragCoord.xy/r;
+  float s=t*0.15;
+  
+  vec2 q=vec2(fbm(uv*2.5+vec2(s,s*0.7)),fbm(uv*2.5+vec2(s*1.3,s*0.4)));
+  vec2 w=vec2(fbm(uv*3.0+q*1.5+vec2(s*0.5,s*0.8)),fbm(uv*3.0+q*1.5+vec2(s*0.7,s*0.3)));
+  
+  float f=fbm(uv*2.0+w*2.0);
+  f=f*f*1.8;
+  
+  vec3 col=palette(f);
+  
+  // Vignette
+  float vig=1.0-length((uv-0.5)*1.4);
+  vig=smoothstep(0.0,0.7,vig);
+  col*=vig;
+  
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+  function mkS(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s}
+  const prg=gl.createProgram();
+  gl.attachShader(prg,mkS(gl.VERTEX_SHADER,vs));
+  gl.attachShader(prg,mkS(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(prg);gl.useProgram(prg);
+
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const p=gl.getAttribLocation(prg,'p');
+  gl.enableVertexAttribArray(p);
+  gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
+
+  const uT=gl.getUniformLocation(prg,'t');
+  const uR=gl.getUniformLocation(prg,'r');
+  let start=Date.now();
+
+  function draw(){
+    gl.uniform1f(uT,(Date.now()-start)/1000);
+    gl.uniform2f(uR,c.width,c.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
 </script>
 </body>
 </html>
