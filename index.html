@@ -570,6 +570,7 @@ always and forever</div>
 <script>
 const PW='babeiloveyousomuchwhatdaheck';
 const pwS=document.getElementById('pw-screen'),pwI=document.getElementById('pw-input'),pwE=document.getElementById('pw-err'),book=document.getElementById('book');
+const mbtn=document.getElementById('music-btn'),bgm=document.getElementById('bgm');
 
 pwI.addEventListener('input',()=>{pwE.classList.remove('show');if(pwI.value.toLowerCase().trim()===PW)unlock()});
 pwI.addEventListener('keydown',e=>{if(e.key==='Enter'){if(pwI.value.toLowerCase().trim()===PW)unlock();else{pwE.classList.add('show');pwI.style.borderBottomColor='#ff6b6b';setTimeout(()=>pwI.style.borderBottomColor='',800)}}});
@@ -740,7 +741,7 @@ function initPtcl(){
 }
 
 // Music
-const mbtn=document.getElementById('music-btn'),bgm=document.getElementById('bgm');
+
 let playing=false;
 
 function startMusic() {
