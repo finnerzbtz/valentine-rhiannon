@@ -28,8 +28,37 @@ canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45}
 #book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
 #book.vis{opacity:1}
 
-.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;transition:opacity .5s ease,transform .5s ease;transform:scale(.96);pointer-events:none}
-.slide.active{opacity:1;transform:scale(1);pointer-events:auto}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;pointer-events:none;will-change:opacity,transform}
+.slide.active{opacity:1;transform:none;pointer-events:auto}
+
+/* Transition: Soft glow fade */
+.slide.t-glow{animation:glowIn .8s cubic-bezier(.23,1,.32,1) forwards}
+@keyframes glowIn{0%{opacity:0;filter:brightness(1.8) blur(8px);transform:scale(1.05)}40%{filter:brightness(1.3) blur(3px)}100%{opacity:1;filter:brightness(1) blur(0);transform:scale(1)}}
+
+/* Transition: Heartbeat zoom */
+.slide.t-heart{animation:heartIn .7s cubic-bezier(.175,.885,.32,1.275) forwards}
+@keyframes heartIn{0%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.06)}70%{transform:scale(.97)}100%{opacity:1;transform:scale(1)}}
+
+/* Transition: Soft drift up */
+.slide.t-rise{animation:riseIn .8s cubic-bezier(.23,1,.32,1) forwards}
+@keyframes riseIn{0%{opacity:0;transform:translateY(40px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+
+/* Transition: Romantic blur reveal */
+.slide.t-reveal{animation:revealIn .9s ease-out forwards}
+@keyframes revealIn{0%{opacity:0;clip-path:circle(0% at 50% 50%)}60%{opacity:1}100%{opacity:1;clip-path:circle(75% at 50% 50%)}}
+
+/* Transition: Warm dissolve */
+.slide.t-warm{animation:warmIn .8s ease forwards}
+@keyframes warmIn{0%{opacity:0;filter:saturate(2) brightness(1.5);transform:scale(1.1) rotate(.5deg)}100%{opacity:1;filter:saturate(1) brightness(1);transform:scale(1) rotate(0)}}
+
+/* Exit transitions */
+.slide.t-exit{animation:fadeOut .4s ease forwards}
+@keyframes fadeOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.94)}}
+
+/* Hearts burst overlay */
+#hearts-burst{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+.burst-heart{position:absolute;font-size:20px;opacity:0;will-change:transform,opacity}
+@keyframes floatHeart{0%{opacity:0;transform:translateY(0) scale(0) rotate(0)}15%{opacity:.8;transform:scale(1)}80%{opacity:.6}100%{opacity:0;transform:translateY(-60vh) scale(.5) rotate(25deg)}}
 
 #cover h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:#d4af37;text-align:center;line-height:1.5;margin-bottom:6px}
 #cover .sub{font-size:20px;font-style:italic;color:rgba(212,175,55,.45);margin-bottom:50px}
@@ -81,6 +110,7 @@ body.holding #book{filter:brightness(.85);transition:filter .2s ease}
 <canvas id="fluid"></canvas>
 <canvas id="ptcl"></canvas>
 
+<div id="hearts-burst"></div>
 <div id="start-overlay">
   <div class="play-icon"></div>
   <div class="start-text">tap to begin</div>
@@ -601,16 +631,44 @@ const dotsC=document.getElementById('dots');
 for(let i=0;i<N;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');dotsC.appendChild(d)}
 const dots=document.querySelectorAll('.dot');
 
+const TRANSITIONS=['t-glow','t-heart','t-rise','t-reveal','t-warm'];
+let tIdx=0;
+function clearTransClasses(el){TRANSITIONS.forEach(t=>el.classList.remove(t));el.classList.remove('t-exit')}
+function burstHearts(){
+  const c=document.getElementById('hearts-burst');
+  const hearts=['❤️','💕','💗','💖','🩷','🧡'];
+  for(let i=0;i<8;i++){
+    const h=document.createElement('span');
+    h.className='burst-heart';
+    h.textContent=hearts[Math.floor(Math.random()*hearts.length)];
+    h.style.left=Math.random()*100+'%';
+    h.style.bottom='-20px';
+    h.style.fontSize=(14+Math.random()*18)+'px';
+    h.style.animation='floatHeart '+(1.5+Math.random()*1.5)+'s ease-out '+(Math.random()*.3)+'s forwards';
+    c.appendChild(h);
+    setTimeout(()=>h.remove(),3500);
+  }
+}
 function goTo(i){
   if(i<0||i>=N||i===cur)return;
   const prev=cur;
   cur=i;
+  // Exit old slide
+  clearTransClasses(slides[prev]);
   slides[prev].classList.remove('active');
-  slides[cur].classList.add('active');
+  slides[prev].classList.add('t-exit');
+  setTimeout(()=>{slides[prev].classList.remove('t-exit')},500);
+  // Enter new slide with random transition
+  clearTransClasses(slides[cur]);
+  const t=TRANSITIONS[tIdx%TRANSITIONS.length];
+  tIdx++;
+  slides[cur].classList.add('active',t);
   dots[prev].classList.remove('active');
   dots[cur].classList.add('active');
   loadAround(cur);
-  // Video control: pause old, play new
+  // Heart burst every 3-4 slides
+  if(tIdx%3===0)burstHearts();
+  // Video control
   const oldV=slides[prev].querySelector('video');
   if(oldV)oldV.pause();
   const newV=slides[cur].querySelector('video');
