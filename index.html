@@ -565,7 +565,7 @@ always and forever</div>
 <div id="progress-bar"></div>
 <div id="dots"></div>
 <div id="music-btn">♫</div>
-<audio id="bgm" preload="auto" loop src="music.mp3"></audio>
+<audio id="bgm" preload="auto" src="music.mp3"></audio>
 
 <script>
 const PW='babeiloveyousomuchwhatdaheck';
@@ -685,12 +685,12 @@ function updateProgress() {
 // Removed 'loop' attribute from <audio> so 'ended' fires reliably.
 // We manually restart playback + slideshow here.
 bgm.addEventListener('ended', () => {
-  if (playing) {
-    bgm.currentTime = 0;
-    bgm.play().catch(()=>{});
-    goTo(0);
-    startAutoAdvance();
-  }
+  // Song finished - go to final message and stop
+  goTo(N-1);
+  stopAutoAdvance();
+  playing=false;
+  mbtn.classList.remove('playing');mbtn.textContent='♫';
+  progressBar.style.width='100%';
 });
 
 // Swipe + Hold-to-pause
