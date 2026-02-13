@@ -41,7 +41,7 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 #book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
 #book.vis{opacity:1}
 
-.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;pointer-events:none;;transition:opacity .3s ease}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 10px 50px;opacity:0;pointer-events:none;transition:opacity .3s ease}
 .slide.active{opacity:1;transform:none;pointer-events:auto}
 
 /* Transition: Soft glow fade */
@@ -74,14 +74,14 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 #cover .hint{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(212,175,55,.25);position:absolute;bottom:55px;animation:pulse 2.5s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.2}50%{opacity:.6}}
 
-.photo-frame{position:relative;max-width:88vw;max-height:72vh;border-radius:4px;overflow:hidden;box-shadow:0 0 30px rgba(212,175,55,.06),0 0 60px rgba(212,175,55,.03)}
-.photo-frame img,.photo-frame video{display:block;max-width:88vw;max-height:72vh;object-fit:contain;border-radius:4px;transform:scale(1);transition:transform 3s ease-out}
+.photo-frame{position:relative;max-width:92vw;max-height:68vh;border-radius:4px;overflow:hidden;box-shadow:0 0 30px rgba(212,175,55,.06),0 0 60px rgba(212,175,55,.03)}
+.photo-frame img,.photo-frame video{display:block;max-width:92vw;max-height:68vh;object-fit:contain;border-radius:4px;transform:scale(1);transition:transform 3s ease-out}
 .slide.active .photo-frame img,.slide.active .photo-frame video{transform:scale(1.06)}
 .photo-frame::after{content:'';position:absolute;inset:0;border:1px solid rgba(212,175,55,.12);border-radius:4px;pointer-events:none}
 .photo-glow{position:absolute;inset:-50px;background:radial-gradient(ellipse at center,rgba(212,175,55,.05) 0%,transparent 70%);pointer-events:none;z-index:-1}
 
-#dots{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10}
-.dot{width:5px;height:5px;border-radius:50%;background:rgba(212,175,55,.15);transition:background .3s,transform .3s}
+#dots{position:fixed;bottom:55px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:10}
+.dot{width:4px;height:4px;border-radius:50%;background:rgba(212,175,55,.15);transition:background .3s,transform .3s}
 .dot.active{background:rgba(212,175,55,.7);transform:scale(1.4)}
 
 #final h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:#d4af37}
@@ -95,9 +95,9 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 .page-num{position:absolute;bottom:28px;font-size:11px;letter-spacing:1px;color:rgba(212,175,55,.2)}
-#love-text{position:fixed;bottom:12px;left:0;right:0;z-index:2;text-align:center;pointer-events:none;opacity:0;transition:opacity 1s}
+#love-text{position:fixed;bottom:30px;left:0;right:0;z-index:2;text-align:center;pointer-events:none;opacity:0;transition:opacity 1s}
 #love-text.vis{opacity:1}
-#love-text span{font-family:'Playfair Display',serif;font-size:clamp(28px,7vw,48px);font-weight:700;letter-spacing:6px;text-transform:uppercase;color:transparent;background:linear-gradient(135deg,#ff2060,#ff4080,#ff60a0,#ff2060);background-size:200% 200%;-webkit-background-clip:text;background-clip:text;animation:loveGlow 3s ease-in-out infinite,loveShift 6s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(255,50,100,.4)) drop-shadow(0 0 30px rgba(255,50,100,.15))}
+#love-text span{font-family:'Playfair Display',serif;font-size:clamp(20px,5.5vw,36px);font-weight:700;letter-spacing:4px;text-transform:uppercase;color:transparent;background:linear-gradient(135deg,#ff2060,#ff4080,#ff60a0,#ff2060);background-size:200% 200%;-webkit-background-clip:text;background-clip:text;animation:loveGlow 3s ease-in-out infinite,loveShift 6s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(255,50,100,.4)) drop-shadow(0 0 30px rgba(255,50,100,.15))}
 @keyframes loveGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(255,50,100,.3)) drop-shadow(0 0 25px rgba(255,50,100,.1))}50%{filter:drop-shadow(0 0 16px rgba(255,50,100,.6)) drop-shadow(0 0 40px rgba(255,50,100,.25))}}
 @keyframes loveShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 #start-overlay{position:fixed;inset:0;z-index:90;background:rgba(10,10,10,.95);display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
