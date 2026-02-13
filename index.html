@@ -605,7 +605,7 @@ let unlocked=false;
 function unlock(){
   if(unlocked)return;
   unlocked=true;
-  pwS.classList.add('gone');initPtcl();initFluid();loadAround(0);
+  pwS.classList.add('gone');initPtcl();// initFluid(); // disabled for stabilityloadAround(0);
   setTimeout(()=>pwS.style.display='none',800);
   document.getElementById('start-overlay').classList.add('show');
 }
@@ -669,14 +669,14 @@ function goTo(i){
   slides[prev].classList.remove('active');
   // Enter new slide with random transition
   clearTransClasses(slides[cur]);
-  const t=TRANSITIONS[tIdx%TRANSITIONS.length];
+  const t=null; // TRANSITIONS[tIdx%TRANSITIONS.length]; // disabled for stability
   tIdx++;
-  slides[cur].classList.add('active',t);
+  slides[cur].classList.add('active');
   dots[prev].classList.remove('active');
   dots[cur].classList.add('active');
   loadAround(cur);
   // Heart burst every 3-4 slides
-  if(tIdx%3===0)burstHearts();
+  // if(tIdx%3===0)burstHearts(); // disabled for stability
   // Video control
   const oldV=slides[prev].querySelector('video');
   if(oldV)oldV.pause();
@@ -839,7 +839,7 @@ function initPtcl(){
   function sz(){W=c.width=innerWidth;H=c.height=innerHeight}sz();
   addEventListener('resize',sz);
   // Fewer particles on mobile
-  const numPtcl=window.innerWidth<768?20:45;
+  const numPtcl=window.innerWidth<768?8:15;
   for(let i=0;i<numPtcl;i++)pts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()*.25+.04});
   let lastPtclDraw=0;
   function draw(now){
