@@ -555,7 +555,7 @@ always and forever</div>
 <div id="progress-bar"></div>
 <div id="dots"></div>
 <div id="music-btn">♫</div>
-<audio id="bgm" loop preload="none" src="music.mp3"></audio>
+<audio id="bgm" preload="auto" loop src="music.mp3"></audio>
 
 <script>
 const PW='babeiloveyousomuchwhatdaheck';
@@ -564,7 +564,15 @@ const pwS=document.getElementById('pw-screen'),pwI=document.getElementById('pw-i
 pwI.addEventListener('input',()=>{pwE.classList.remove('show');if(pwI.value.toLowerCase().trim()===PW)unlock()});
 pwI.addEventListener('keydown',e=>{if(e.key==='Enter'){if(pwI.value.toLowerCase().trim()===PW)unlock();else{pwE.classList.add('show');pwI.style.borderBottomColor='#ff6b6b';setTimeout(()=>pwI.style.borderBottomColor='',800)}}});
 
-function unlock(){pwS.classList.add('gone');book.classList.add('vis');initPtcl();initFluid();loadAround(0);setTimeout(()=>pwS.style.display='none',800);tryMusic()}
+function unlock(){
+  pwS.classList.add('gone');book.classList.add('vis');initPtcl();initFluid();loadAround(0);
+  setTimeout(()=>pwS.style.display='none',800);
+  // Start music directly from user gesture (required by iOS Safari)
+  bgm.play().then(()=>{
+    playing=true;mbtn.classList.add('vis','playing');mbtn.textContent='⏸';
+    startAutoAdvance();requestAnimationFrame(updateProgress);
+  }).catch(()=>{mbtn.classList.add('vis')});
+}
 
 const slides=document.querySelectorAll('.slide');
 const N=slides.length;
@@ -577,13 +585,18 @@ const dots=document.querySelectorAll('.dot');
 
 function goTo(i){
   if(i<0||i>=N||i===cur)return;
-  slides[cur].classList.remove('active');
+  const prev=cur;
   cur=i;
-  slides.forEach((s,j)=>{s.classList.remove('active');if(j===cur)s.classList.add('active')});
-  dots.forEach((d,j)=>d.classList.toggle('active',j===cur));
+  slides[prev].classList.remove('active');
+  slides[cur].classList.add('active');
+  dots[prev].classList.remove('active');
+  dots[cur].classList.add('active');
   loadAround(cur);
-  // Video control
-  slides.forEach((s,j)=>{const v=s.querySelector('video');if(v){if(j===cur){v.play().catch(()=>{})}else v.pause()}});
+  // Video control: pause old, play new
+  const oldV=slides[prev].querySelector('video');
+  if(oldV)oldV.pause();
+  const newV=slides[cur].querySelector('video');
+  if(newV)newV.play().catch(()=>{});
 }
 
 // Lazy loading
@@ -642,16 +655,19 @@ function updateProgress() {
 }
 
 // Music loop: restart slideshow from beginning
-bgm.addEventListener('seeked', () => {
-  // Detect loop restart (currentTime jumps back near 0)
-  if (bgm.currentTime < 0.5 && playing) {
+// Removed 'loop' attribute from <audio> so 'ended' fires reliably.
+// We manually restart playback + slideshow here.
+bgm.addEventListener('ended', () => {
+  if (playing) {
+    bgm.currentTime = 0;
+    bgm.play().catch(()=>{});
     goTo(0);
     startAutoAdvance();
   }
 });
 
 // Swipe + Hold-to-pause
-let tx=0,ty=0,sw=false;
+let tx=0,ty=0,sw=false,lastSwipeTime=0;
 document.addEventListener('touchstart',e=>{
   tx=e.touches[0].clientX;ty=e.touches[0].clientY;sw=true;
   // Hold-to-pause (only if book is visible)
@@ -666,6 +682,7 @@ document.addEventListener('touchend',e=>{
   swiped = Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40;
   if(swiped&&sw){
     dx<0?goTo(cur+1):goTo(cur-1);
+    lastSwipeTime = Date.now();
     // After manual swipe, restart auto-advance from new position
     if (playing) startAutoAdvance();
   }
@@ -677,12 +694,15 @@ document.addEventListener('touchend',e=>{
 
 document.addEventListener('touchcancel',()=>{
   holding = false;
+  sw = false;
   document.body.classList.remove('holding');
 },{passive:true});
 
-// Tap edges
+// Tap edges (skip if just swiped to avoid double-advance)
 document.addEventListener('click',e=>{
   if(pwS.style.display!=='none'&&!pwS.classList.contains('gone'))return;
+  if(e.target.id==='music-btn'||e.target.closest('#music-btn'))return; // don't navigate on music btn
+  if(Date.now() - lastSwipeTime < 400) return; // ignore click after swipe
   const x=e.clientX/window.innerWidth;
   if(x>.7){goTo(cur+1);if(playing)startAutoAdvance()}
   else if(x<.3){goTo(cur-1);if(playing)startAutoAdvance()}
@@ -725,8 +745,6 @@ function pauseMusic() {
 
 function tryMusic(){
   mbtn.classList.add('vis');
-  // Auto-play music on entry
-  startMusic();
 }
 mbtn.addEventListener('click',()=>{
   if(playing) pauseMusic();
