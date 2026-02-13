@@ -601,21 +601,27 @@ const mbtn=document.getElementById('music-btn'),bgm=document.getElementById('bgm
 pwI.addEventListener('input',()=>{pwE.classList.remove('show');if(pwI.value.toLowerCase().trim()===PW)unlock()});
 pwI.addEventListener('keydown',e=>{if(e.key==='Enter'){if(pwI.value.toLowerCase().trim()===PW)unlock();else{pwE.classList.add('show');pwI.style.borderBottomColor='#ff6b6b';setTimeout(()=>pwI.style.borderBottomColor='',800)}}});
 
+let unlocked=false;
 function unlock(){
+  if(unlocked)return;
+  unlocked=true;
   pwS.classList.add('gone');initPtcl();initFluid();loadAround(0);
   setTimeout(()=>pwS.style.display='none',800);
-  // Show tap-to-start overlay (iOS needs a real tap for audio)
   document.getElementById('start-overlay').classList.add('show');
 }
-document.getElementById('start-overlay').addEventListener('click',function(){
-  this.classList.remove('show');
-  book.classList.add('vis');
-  mbtn.classList.add('vis');
-  loadAll();
-  bgm.play().then(()=>{
-    playing=true;mbtn.classList.add('playing');mbtn.textContent='⏸';
-    startAutoAdvance();requestAnimationFrame(updateProgress);
-  }).catch(()=>{});
+document.getElementById('start-overlay').addEventListener('click',function(e){
+  e.preventDefault();e.stopPropagation();
+  try{
+    this.classList.remove('show');
+    this.style.display='none';
+    book.classList.add('vis');
+    mbtn.classList.add('vis');
+    loadAll();
+    bgm.play().then(()=>{
+      playing=true;mbtn.classList.add('playing');mbtn.textContent='⏸';
+      startAutoAdvance();requestAnimationFrame(updateProgress);
+    }).catch(()=>{});
+  }catch(err){console.error('Start error:',err)}
 });
 
 const slides=document.querySelectorAll('.slide');
