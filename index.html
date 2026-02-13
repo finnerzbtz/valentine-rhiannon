@@ -699,6 +699,8 @@ function cyclePetWord(){
 function goTo(i){
   if(i<0||i>=N||i===cur)return;
   cyclePetWord();
+  var loveText=document.getElementById('love-text');
+  if(loveText){if(i>=N-1){loveText.style.opacity='0'}else{loveText.style.opacity='1'}}
   const prev=cur;
   cur=i;
   // Exit old slide
