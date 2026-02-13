@@ -539,14 +539,15 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 
   <div class="slide" id="final">
     <div class="heart">❤️</div>
-    <div class="msg">YOUR_MESSAGE_HERE</div>
+    <div class="msg">you and me
+always and forever</div>
     <div class="sign">forever yours x</div>
   </div>
 </div>
 
 <div id="dots"></div>
 <div id="music-btn">♫</div>
-<audio id="bgm" loop preload="none"></audio>
+<audio id="bgm" loop preload="none" src="music.mp3"></audio>
 
 <script>
 const PW='babeiloveyousomuchwhatdaheck';
@@ -611,7 +612,7 @@ function initPtcl(){
 const mbtn=document.getElementById('music-btn'),bgm=document.getElementById('bgm');
 let playing=false;
 function tryMusic(){
-  if(bgm.dataset.src){bgm.src=bgm.dataset.src;mbtn.classList.add('vis')}
+  mbtn.classList.add('vis')
 }
 mbtn.addEventListener('click',()=>{
   if(playing){bgm.pause();mbtn.classList.remove('playing');mbtn.textContent='♫'}
