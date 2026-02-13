@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>For You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;color:#d4af37;font-family:'Cormorant Garamond',serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+
+#pw-screen{position:fixed;inset:0;z-index:100;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s}
+#pw-screen.gone{opacity:0;visibility:hidden;pointer-events:none}
+#pw-screen .lock{font-size:48px;margin-bottom:30px;opacity:.6}
+#pw-screen label{font-family:'Playfair Display',serif;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#d4af37;opacity:.6;margin-bottom:14px}
+#pw-input{background:0 0;border:none;border-bottom:1px solid rgba(212,175,55,.25);color:#d4af37;font-family:'Cormorant Garamond',serif;font-size:18px;padding:12px 20px;width:280px;text-align:center;outline:0;transition:border-color .3s}
+#pw-input:focus{border-bottom-color:rgba(212,175,55,.7)}
+#pw-input::placeholder{color:rgba(212,175,55,.15)}
+#pw-err{color:#ff6b6b;font-size:13px;margin-top:12px;opacity:0;transition:opacity .3s}
+#pw-err.show{opacity:1}
+
+canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+#book{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s}
+#book.vis{opacity:1}
+
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;opacity:0;transition:opacity .5s ease,transform .5s ease;transform:scale(.96);pointer-events:none}
+.slide.active{opacity:1;transform:scale(1);pointer-events:auto}
+
+#cover h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:#d4af37;text-align:center;line-height:1.5;margin-bottom:6px}
+#cover .sub{font-size:20px;font-style:italic;color:rgba(212,175,55,.45);margin-bottom:50px}
+#cover .hint{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(212,175,55,.25);position:absolute;bottom:55px;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.6}}
+
+.photo-frame{position:relative;max-width:88vw;max-height:72vh;border-radius:4px;overflow:hidden;box-shadow:0 0 30px rgba(212,175,55,.06),0 0 60px rgba(212,175,55,.03)}
+.photo-frame img,.photo-frame video{display:block;max-width:88vw;max-height:72vh;object-fit:contain;border-radius:4px}
+.photo-frame::after{content:'';position:absolute;inset:0;border:1px solid rgba(212,175,55,.12);border-radius:4px;pointer-events:none}
+.photo-glow{position:absolute;inset:-50px;background:radial-gradient(ellipse at center,rgba(212,175,55,.05) 0%,transparent 70%);pointer-events:none;z-index:-1}
+
+#dots{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10}
+.dot{width:5px;height:5px;border-radius:50%;background:rgba(212,175,55,.15);transition:background .3s,transform .3s}
+.dot.active{background:rgba(212,175,55,.7);transform:scale(1.4)}
+
+#final h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:#d4af37}
+#final .msg{font-size:19px;font-style:italic;color:#d4af37;line-height:1.8;max-width:300px;opacity:.85;text-align:center;margin-top:20px}
+#final .heart{font-size:40px;margin-bottom:24px;opacity:.5}
+#final .sign{font-size:15px;color:rgba(212,175,55,.4);margin-top:28px}
+
+#music-btn{position:fixed;top:14px;right:14px;z-index:50;width:34px;height:34px;border-radius:50%;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.15);color:#d4af37;font-size:15px;display:none;align-items:center;justify-content:center;cursor:pointer}
+#music-btn.vis{display:flex}
+#music-btn.playing{animation:spin 3s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.page-num{position:absolute;bottom:28px;font-size:11px;letter-spacing:1px;color:rgba(212,175,55,.2)}
+</style>
+</head>
+<body>
+
+<div id="pw-screen">
+  <div class="lock">🔒</div>
+  <label>enter password</label>
+  <input type="text" id="pw-input" placeholder="..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <div id="pw-err">try again ❤️</div>
+</div>
+
+<canvas id="ptcl"></canvas>
+
+<div id="book">
+  <div class="slide active" id="cover">
+    <h1>Happy<br>Valentine's Day</h1>
+    <div class="sub">Rhiannon</div>
+    <div class="hint">swipe to begin</div>
+  </div>
+
+  <div class="slide" data-idx="1">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/01_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="2">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/02_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="3">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/03_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="4">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/04_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="5">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/05_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="6">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/06.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="7">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/07_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="8">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/08_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="9">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/09_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="10">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/10_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="11">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/11_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="12">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/12_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="13">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/13_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="14">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/14_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="15">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/15_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="16">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/16_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="17">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/17_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="18">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/18_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="19">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/19_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="20">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/20_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="21">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/21_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="22">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/22_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="23">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/23_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="24">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/24_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="25">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/25_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="26">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/26_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="27">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/27_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="28">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/28.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="29">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/29.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="30">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/30.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="31">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/31_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="32">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/32_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="33">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/33_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="34">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/34_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="35">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/35_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="36">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/36_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="37">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/37_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="38">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/38_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="39">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/39_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="40">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/40_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="41">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/41_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="42">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/42_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="43">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/43_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="44">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/44_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="45">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/45_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="46">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/46_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="47">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/47_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="48">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/48.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="49">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/49.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="50">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/50.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" data-idx="51">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/51_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="52">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/52_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="53">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/53_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="54">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/54_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="55">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/55_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="56">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/56_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="57">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/57_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="58">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/58_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="59">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/59_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="60">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/60_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="61">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/61_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="62">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/62_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="63">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/63_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="64">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/64_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="65">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <img data-src="photos/65_web.jpg" alt="" class="lazy">
+    </div>
+  </div>
+
+  <div class="slide" data-idx="66">
+    <div class="photo-glow"></div>
+    <div class="photo-frame">
+      <video data-src="photos/66.mp4" playsinline muted loop class="lazy-vid"></video>
+    </div>
+  </div>
+
+  <div class="slide" id="final">
+    <div class="heart">❤️</div>
+    <div class="msg">YOUR_MESSAGE_HERE</div>
+    <div class="sign">forever yours x</div>
+  </div>
+</div>
+
+<div id="dots"></div>
+<div id="music-btn">♫</div>
+<audio id="bgm" loop preload="none"></audio>
+
+<script>
+const PW='babeiloveyousomuchwhatdaheck';
+const pwS=document.getElementById('pw-screen'),pwI=document.getElementById('pw-input'),pwE=document.getElementById('pw-err'),book=document.getElementById('book');
+
+pwI.addEventListener('input',()=>{pwE.classList.remove('show');if(pwI.value.toLowerCase().trim()===PW)unlock()});
+pwI.addEventListener('keydown',e=>{if(e.key==='Enter'){if(pwI.value.toLowerCase().trim()===PW)unlock();else{pwE.classList.add('show');pwI.style.borderBottomColor='#ff6b6b';setTimeout(()=>pwI.style.borderBottomColor='',800)}}});
+
+function unlock(){pwS.classList.add('gone');book.classList.add('vis');initPtcl();loadAround(0);setTimeout(()=>pwS.style.display='none',800);tryMusic()}
+
+const slides=document.querySelectorAll('.slide');
+const N=slides.length;
+let cur=0;
+
+// Dots
+const dotsC=document.getElementById('dots');
+for(let i=0;i<N;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');dotsC.appendChild(d)}
+const dots=document.querySelectorAll('.dot');
+
+function goTo(i){
+  if(i<0||i>=N||i===cur)return;
+  slides[cur].classList.remove('active');
+  cur=i;
+  slides.forEach((s,j)=>{s.classList.remove('active');if(j===cur)s.classList.add('active')});
+  dots.forEach((d,j)=>d.classList.toggle('active',j===cur));
+  loadAround(cur);
+  // Video control
+  slides.forEach((s,j)=>{const v=s.querySelector('video');if(v){if(j===cur){v.play().catch(()=>{})}else v.pause()}});
+}
+
+// Lazy loading
+function loadAround(idx){
+  for(let d=-1;d<=1;d++){
+    const j=idx+d;if(j<0||j>=N)continue;
+    const s=slides[j];
+    s.querySelectorAll('img.lazy').forEach(img=>{if(!img.src&&img.dataset.src)img.src=img.dataset.src;img.classList.remove('lazy')});
+    s.querySelectorAll('video.lazy-vid').forEach(vid=>{if(!vid.src&&vid.dataset.src)vid.src=vid.dataset.src;vid.classList.remove('lazy-vid')});
+  }
+}
+
+// Swipe
+let tx=0,ty=0,sw=false;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;sw=true},{passive:true});
+document.addEventListener('touchend',e=>{if(!sw)return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40){dx<0?goTo(cur+1):goTo(cur-1)}sw=false},{passive:true});
+
+// Tap edges
+document.addEventListener('click',e=>{if(pwS.style.display!=='none'&&!pwS.classList.contains('gone'))return;const x=e.clientX/window.innerWidth;if(x>.7)goTo(cur+1);else if(x<.3)goTo(cur-1)});
+
+// Keys
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')goTo(cur+1);if(e.key==='ArrowLeft')goTo(cur-1)});
+
+// Particles
+function initPtcl(){
+  const c=document.getElementById('ptcl'),ctx=c.getContext('2d');let W,H,pts=[];
+  function sz(){W=c.width=innerWidth;H=c.height=innerHeight}sz();
+  addEventListener('resize',sz);
+  for(let i=0;i<45;i++)pts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()*.25+.04});
+  function draw(){ctx.clearRect(0,0,W,H);for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(212,175,55,${p.a})`;ctx.fill()}requestAnimationFrame(draw)}draw()
+}
+
+// Music
+const mbtn=document.getElementById('music-btn'),bgm=document.getElementById('bgm');
+let playing=false;
+function tryMusic(){
+  if(bgm.dataset.src){bgm.src=bgm.dataset.src;mbtn.classList.add('vis')}
+}
+mbtn.addEventListener('click',()=>{
+  if(playing){bgm.pause();mbtn.classList.remove('playing');mbtn.textContent='♫'}
+  else{bgm.play().then(()=>{mbtn.classList.add('playing');mbtn.textContent='⏸'}).catch(()=>{})}
+  playing=!playing
+});
+</script>
+</body>
+</html>
