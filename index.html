@@ -56,6 +56,11 @@ canvas#fluid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.18}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 .page-num{position:absolute;bottom:28px;font-size:11px;letter-spacing:1px;color:rgba(212,175,55,.2)}
+
+#progress-bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#d4af37,#f5d77a);z-index:60;width:0;transition:width .3s linear;pointer-events:none}
+body.holding::after{content:'❚❚';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:rgba(212,175,55,.35);z-index:55;pointer-events:none;animation:holdFade .3s ease}
+body.holding #book{filter:brightness(.85);transition:filter .2s ease}
+@keyframes holdFade{from{opacity:0;transform:translate(-50%,-50%) scale(.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 </style>
 </head>
 <body>
@@ -547,6 +552,7 @@ always and forever</div>
   </div>
 </div>
 
+<div id="progress-bar"></div>
 <div id="dots"></div>
 <div id="music-btn">♫</div>
 <audio id="bgm" loop preload="none" src="music.mp3"></audio>
@@ -590,16 +596,103 @@ function loadAround(idx){
   }
 }
 
-// Swipe
+// === Auto-advance synced to music ===
+const BAR_MS = 2308; // 104 BPM, 1 bar = 60/104*4 = 2.308s
+const BAR_MS_VIDEO = BAR_MS * 2; // Videos get 2 bars
+let autoTimer = null;
+let holding = false;
+let swiped = false;
+const progressBar = document.getElementById('progress-bar');
+
+function isVideoSlide(idx) {
+  return !!slides[idx] && !!slides[idx].querySelector('video');
+}
+
+function startAutoAdvance() {
+  stopAutoAdvance();
+  if (!playing) return;
+  const delay = isVideoSlide(cur) ? BAR_MS_VIDEO : BAR_MS;
+  autoTimer = setTimeout(function tick() {
+    if (!playing) return;
+    if (!holding) {
+      if (cur < N - 1) {
+        goTo(cur + 1);
+        const nextDelay = isVideoSlide(cur) ? BAR_MS_VIDEO : BAR_MS;
+        autoTimer = setTimeout(tick, nextDelay);
+      }
+      // At last slide, stop (don't loop — loop handled by audio event)
+    } else {
+      // Still holding, check again soon
+      autoTimer = setTimeout(tick, 100);
+    }
+  }, delay);
+}
+
+function stopAutoAdvance() {
+  if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+}
+
+// Update progress bar from audio
+function updateProgress() {
+  if (bgm.duration && bgm.duration > 0) {
+    const pct = (bgm.currentTime / bgm.duration) * 100;
+    progressBar.style.width = pct + '%';
+  }
+  if (playing) requestAnimationFrame(updateProgress);
+}
+
+// Music loop: restart slideshow from beginning
+bgm.addEventListener('seeked', () => {
+  // Detect loop restart (currentTime jumps back near 0)
+  if (bgm.currentTime < 0.5 && playing) {
+    goTo(0);
+    startAutoAdvance();
+  }
+});
+
+// Swipe + Hold-to-pause
 let tx=0,ty=0,sw=false;
-document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;sw=true},{passive:true});
-document.addEventListener('touchend',e=>{if(!sw)return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40){dx<0?goTo(cur+1):goTo(cur-1)}sw=false},{passive:true});
+document.addEventListener('touchstart',e=>{
+  tx=e.touches[0].clientX;ty=e.touches[0].clientY;sw=true;
+  // Hold-to-pause (only if book is visible)
+  if (pwS.classList.contains('gone')) {
+    holding = true;
+    document.body.classList.add('holding');
+  }
+},{passive:true});
+
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  swiped = Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40;
+  if(swiped&&sw){
+    dx<0?goTo(cur+1):goTo(cur-1);
+    // After manual swipe, restart auto-advance from new position
+    if (playing) startAutoAdvance();
+  }
+  sw=false;
+  // Release hold
+  holding = false;
+  document.body.classList.remove('holding');
+},{passive:true});
+
+document.addEventListener('touchcancel',()=>{
+  holding = false;
+  document.body.classList.remove('holding');
+},{passive:true});
 
 // Tap edges
-document.addEventListener('click',e=>{if(pwS.style.display!=='none'&&!pwS.classList.contains('gone'))return;const x=e.clientX/window.innerWidth;if(x>.7)goTo(cur+1);else if(x<.3)goTo(cur-1)});
+document.addEventListener('click',e=>{
+  if(pwS.style.display!=='none'&&!pwS.classList.contains('gone'))return;
+  const x=e.clientX/window.innerWidth;
+  if(x>.7){goTo(cur+1);if(playing)startAutoAdvance()}
+  else if(x<.3){goTo(cur-1);if(playing)startAutoAdvance()}
+});
 
 // Keys
-document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')goTo(cur+1);if(e.key==='ArrowLeft')goTo(cur-1)});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){goTo(cur+1);if(playing)startAutoAdvance()}
+  if(e.key==='ArrowLeft'){goTo(cur-1);if(playing)startAutoAdvance()}
+});
 
 // Particles
 function initPtcl(){
@@ -613,13 +706,31 @@ function initPtcl(){
 // Music
 const mbtn=document.getElementById('music-btn'),bgm=document.getElementById('bgm');
 let playing=false;
+
+function startMusic() {
+  bgm.play().then(()=>{
+    playing=true;
+    mbtn.classList.add('playing');mbtn.textContent='⏸';
+    startAutoAdvance();
+    requestAnimationFrame(updateProgress);
+  }).catch(()=>{});
+}
+
+function pauseMusic() {
+  bgm.pause();
+  playing=false;
+  mbtn.classList.remove('playing');mbtn.textContent='♫';
+  stopAutoAdvance();
+}
+
 function tryMusic(){
-  mbtn.classList.add('vis')
+  mbtn.classList.add('vis');
+  // Auto-play music on entry
+  startMusic();
 }
 mbtn.addEventListener('click',()=>{
-  if(playing){bgm.pause();mbtn.classList.remove('playing');mbtn.textContent='♫'}
-  else{bgm.play().then(()=>{mbtn.classList.add('playing');mbtn.textContent='⏸'}).catch(()=>{})}
-  playing=!playing
+  if(playing) pauseMusic();
+  else startMusic();
 });
 // FLUID DYNAMICS
 function initFluid(){
