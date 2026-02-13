@@ -60,7 +60,7 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 
 /* Hearts burst overlay */
 #hearts-burst{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden}
-.burst-heart{position:absolute;font-size:20px;opacity:0;will-change:transform,opacity}
+.burst-heart{position:absolute;font-size:20px;opacity:0}
 @keyframes floatHeart{0%{opacity:0;transform:translateY(0) scale(0) rotate(0)}15%{opacity:.8;transform:scale(1)}80%{opacity:.6}100%{opacity:0;transform:translateY(-60vh) scale(.5) rotate(25deg)}}
 
 #cover h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:#d4af37;text-align:center;line-height:1.5;margin-bottom:6px}
@@ -69,7 +69,8 @@ canvas#ptcl{position:fixed;inset:0;z-index:0;pointer-events:none}
 @keyframes pulse{0%,100%{opacity:.2}50%{opacity:.6}}
 
 .photo-frame{position:relative;max-width:88vw;max-height:72vh;border-radius:4px;overflow:hidden;box-shadow:0 0 30px rgba(212,175,55,.06),0 0 60px rgba(212,175,55,.03)}
-.photo-frame img,.photo-frame video{display:block;max-width:88vw;max-height:72vh;object-fit:contain;border-radius:4px}
+.photo-frame img,.photo-frame video{display:block;max-width:88vw;max-height:72vh;object-fit:contain;border-radius:4px;transform:scale(1);transition:transform 3s ease-out}
+.slide.active .photo-frame img,.slide.active .photo-frame video{transform:scale(1.06)}
 .photo-frame::after{content:'';position:absolute;inset:0;border:1px solid rgba(212,175,55,.12);border-radius:4px;pointer-events:none}
 .photo-glow{position:absolute;inset:-50px;background:radial-gradient(ellipse at center,rgba(212,175,55,.05) 0%,transparent 70%);pointer-events:none;z-index:-1}
 
@@ -683,7 +684,7 @@ function goTo(i){
   dots[cur].classList.add('active');
   loadAround(cur);
   // Heart burst every 3 slides
-  // hearts disabled
+  if(tIdx%5===0)burstHearts();
   // Video control
   const oldV=slides[prev].querySelector('video');
   if(oldV)oldV.pause();
