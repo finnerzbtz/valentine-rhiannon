@@ -585,6 +585,7 @@ document.getElementById('start-overlay').addEventListener('click',function(){
   this.classList.remove('show');
   book.classList.add('vis');
   mbtn.classList.add('vis');
+  loadAll();
   bgm.play().then(()=>{
     playing=true;mbtn.classList.add('playing');mbtn.textContent='⏸';
     startAutoAdvance();requestAnimationFrame(updateProgress);
@@ -618,12 +619,18 @@ function goTo(i){
 
 // Lazy loading
 function loadAround(idx){
-  for(let d=-1;d<=1;d++){
+  for(let d=-1;d<=2;d++){
     const j=idx+d;if(j<0||j>=N)continue;
     const s=slides[j];
     s.querySelectorAll('img.lazy').forEach(img=>{if(!img.src&&img.dataset.src)img.src=img.dataset.src;img.classList.remove('lazy')});
     s.querySelectorAll('video.lazy-vid').forEach(vid=>{if(!vid.src&&vid.dataset.src)vid.src=vid.dataset.src;vid.classList.remove('lazy-vid')});
   }
+}
+function loadAll(){
+  slides.forEach(s=>{
+    s.querySelectorAll('img.lazy').forEach(img=>{if(!img.src&&img.dataset.src)img.src=img.dataset.src;img.classList.remove('lazy')});
+    s.querySelectorAll('video.lazy-vid').forEach(vid=>{if(!vid.src&&vid.dataset.src)vid.src=vid.dataset.src;vid.classList.remove('lazy-vid')});
+  });
 }
 
 // === Auto-advance synced to music ===
